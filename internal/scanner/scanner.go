@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -11,7 +12,8 @@ import (
 	"github.com/effective-security/promptviser/internal/llm"
 	"github.com/effective-security/promptviser/internal/scanner/pass1"
 	"github.com/effective-security/promptviser/internal/scanner/pass2"
-	"github.com/effective-security/promptviser/internal/scanner/pass3"
+	pass3 "github.com/effective-security/promptviser/internal/scanner/pass3"
+	"github.com/effective-security/promptviser/internal/scanner/pass4"
 )
 
 // promptExtensions lists the file extensions treated as prompt files.
@@ -22,7 +24,17 @@ var promptExtensions = map[string]bool{
 	".md":   true,
 }
 
-// Result holds the combined output of all three passes for a scanned file.
+// sourceExtensions lists the file extensions searched when looking for source
+// files that call or load a prompt file.
+var sourceExtensions = map[string]bool{
+	".go":   true,
+	".py":   true,
+	".js":   true,
+	".ts":   true,
+	".java": true,
+}
+
+// Result holds the combined output of all four passes for a scanned file.
 type Result struct {
 	FileName       string
 	StaticTriggers []string
@@ -37,62 +49,123 @@ type Result struct {
 // }
 // TODO: later add compliance to other yaml config frameworks
 
-// Scan walks dir, runs all three passes over every prompt file found, and
-// returns the combined Result. Prompt text never leaves this function.
+// Scan walks dir, runs all four passes over every prompt file found, and
+// returns the combined results. Prompt text never leaves this function.
+//
+// Each prompt file produces one FileScanResult. If source files that reference
+// the prompt are found, each of those produces its own separate FileScanResult
+// containing only ASTTriggers — enabling per-caller-file findings in the report.
 func Scan(ctx context.Context, dir string, provider llm.Provider) ([]*pb.FileScanResult, error) {
 	files, err := collectPromptFiles(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	type result struct {
-		index  int
-		result *pb.FileScanResult
-		err    error
+	type batch struct {
+		results []*pb.FileScanResult
+		err     error
 	}
-	resultsCh := make(chan result, len(files))
+	batchCh := make(chan batch, len(files))
 	var wg sync.WaitGroup
 
-	for idx, path := range files {
+	for _, path := range files {
 		wg.Add(1)
-		go func(idx int, path string) {
+		go func(path string) {
 			defer wg.Done()
-			fileResult := &pb.FileScanResult{
-				FileName: path,
-			}
+			promptResult := &pb.FileScanResult{FileName: path}
+
 			content, err := os.ReadFile(path)
 			if err != nil {
-				resultsCh <- result{index: idx, result: fileResult, err: err}
+				batchCh <- batch{err: err}
 				return
 			}
 
-			fileResult.StaticTriggers = pass1.Check(content)
-			fileResult.MetadataFlags = pass2.Analyze(content)
-			scores, err := pass3.Score(ctx, content, fileResult.StaticTriggers, fileResult.MetadataFlags, provider)
+			// Pass 1: regex-based static analysis on the prompt text.
+			promptResult.StaticTriggers = pass1.Check(content)
+			// Pass 2: YAML metadata flags.
+			promptResult.MetadataFlags = pass2.Analyze(content)
+			// Pass 3: AST analysis on source files that call this prompt.
+			// Each caller that produces triggers becomes its own FileScanResult.
+			callerResults := scanCallers(findCallerFiles(path, dir))
+			// Pass 4: LLM scoring on the prompt itself.
+			scores, err := pass4.Score(ctx, content, promptResult.StaticTriggers, promptResult.MetadataFlags, provider)
 			if err != nil {
 				scores = []*pb.DimensionScore{{Dimension: "error: " + err.Error(), Score: 1}}
 			}
-			fileResult.Scores = mergeScores(fileResult.Scores, scores)
+			promptResult.Scores = mergeScores(promptResult.Scores, scores)
 
-			resultsCh <- result{index: idx, result: fileResult, err: err}
-		}(idx, path)
+			out := make([]*pb.FileScanResult, 0, 1+len(callerResults))
+			out = append(out, promptResult)
+			out = append(out, callerResults...)
+			batchCh <- batch{results: out}
+		}(path)
 	}
 
-	// Close channel once all goroutines finish
 	go func() {
 		wg.Wait()
-		close(resultsCh)
+		close(batchCh)
 	}()
 
-	results := make([]*pb.FileScanResult, len(files))
-	for res := range resultsCh {
-		if res.err != nil {
-			return nil, res.err
+	var all []*pb.FileScanResult
+	for b := range batchCh {
+		if b.err != nil {
+			return nil, b.err
 		}
-		results[res.index] = res.result
+		all = append(all, b.results...)
 	}
+	return all, nil
+}
 
-	return results, nil
+// scanCallers runs pass3 (AST analysis) on each caller file individually and
+// returns a separate FileScanResult for every caller that produces triggers.
+// Callers with no triggers are omitted to keep the output clean.
+func scanCallers(callers []pass3.CallerFile) []*pb.FileScanResult {
+	var results []*pb.FileScanResult
+	for _, caller := range callers {
+		triggers := pass3.Analyze([]pass3.CallerFile{caller})
+		if len(triggers) == 0 {
+			continue
+		}
+		results = append(results, &pb.FileScanResult{
+			FileName:    caller.Path,
+			ASTTriggers: triggers,
+		})
+	}
+	return results
+}
+
+// findCallerFiles walks rootDir for source code files that reference promptPath
+// by filename. A source file is considered a caller if its content contains the
+// prompt's base name (e.g. "crisis-support.yaml"). Unreadable files are silently
+// skipped — caller discovery is best-effort and never fails the scan.
+func findCallerFiles(promptPath, rootDir string) []pass3.CallerFile {
+	base := filepath.Base(promptPath) // e.g. "crisis-support.yaml"
+	needle := []byte(base)
+
+	var callers []pass3.CallerFile
+	_ = filepath.WalkDir(rootDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil // skip unreadable entries
+		}
+		if d.IsDir() {
+			if strings.HasPrefix(d.Name(), ".") && path != rootDir {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !sourceExtensions[strings.ToLower(filepath.Ext(path))] {
+			return nil
+		}
+		content, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return nil
+		}
+		if bytes.Contains(content, needle) {
+			callers = append(callers, pass3.CallerFile{Path: path, Content: content})
+		}
+		return nil
+	})
+	return callers
 }
 
 // collectPromptFiles returns all prompt files under dir recursively.

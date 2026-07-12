@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/effective-security/promptviser/api/pb"
 	"github.com/effective-security/promptviser/internal/adviserdb"
 	"github.com/effective-security/promptviser/internal/llm"
+	pass3 "github.com/effective-security/promptviser/internal/scanner/pass3"
 	advisersvc "github.com/effective-security/promptviser/server/service/adviser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -275,4 +277,52 @@ func Test_ScanConcurrency(t *testing.T) {
 			seen[score.Dimension] = true
 		}
 	}
+}
+
+// ----- findCallerFiles tests --------------------------------------------------
+
+func callerPaths(callers []pass3.CallerFile) []string {
+	paths := make([]string, len(callers))
+	for i, c := range callers {
+		paths[i] = filepath.ToSlash(c.Path)
+	}
+	return paths
+}
+
+func Test_findCallerFiles_PatientIntake(t *testing.T) {
+	// src/main.go contains "patient-intake.yaml" so it should be found.
+	got := findCallerFiles(
+		"testdata/fake-project/prompts/patient-intake.yaml",
+		"testdata/fake-project",
+	)
+	paths := callerPaths(got)
+	assert.Contains(t, paths, "testdata/fake-project/src/main.go")
+	// handler.py references crisis-support, not patient-intake.
+	assert.NotContains(t, paths, "testdata/fake-project/src/handler.py")
+}
+
+func Test_findCallerFiles_CrisisSupport(t *testing.T) {
+	// src/handler.py contains "crisis-support.yaml" so it should be found.
+	got := findCallerFiles(
+		"testdata/fake-project/prompts/crisis-support.yaml",
+		"testdata/fake-project",
+	)
+	paths := callerPaths(got)
+	assert.Contains(t, paths, "testdata/fake-project/src/handler.py")
+	assert.NotContains(t, paths, "testdata/fake-project/src/main.go")
+}
+
+func Test_findCallerFiles_NoCallers(t *testing.T) {
+	// fully-compliant.yaml is not referenced by any source file.
+	got := findCallerFiles(
+		"testdata/fake-project/prompts/fully-compliant.yaml",
+		"testdata/fake-project",
+	)
+	assert.Empty(t, got)
+}
+
+func Test_findCallerFiles_NonexistentRoot(t *testing.T) {
+	// A non-existent root directory should return an empty slice, not panic.
+	got := findCallerFiles("prompts/patient-intake.yaml", "nonexistent/dir")
+	assert.Empty(t, got)
 }

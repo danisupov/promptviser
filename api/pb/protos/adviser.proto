@@ -69,8 +69,10 @@ message FileScanResult {
   repeated string StaticTriggers = 2 [ json_name = "StaticTriggers" ];
   // MetadataFlags carries boolean YAML metadata
   repeated string MetadataFlags = 3 [ json_name = "MetadataFlags" ];
+  // ASTTriggers lists rule IDs or named patterns that fired based on AST analysis
+  repeated string ASTTriggers = 4 [ json_name = "ASTTriggers" ];
   // Scores contains LLM-derived dimension scores
-  repeated DimensionScore Scores = 4 [ json_name = "Scores" ];
+  repeated DimensionScore Scores = 5 [ json_name = "Scores" ];
 }
 
 // MatchRulesRequest carries anonymised signals from the local scanner.

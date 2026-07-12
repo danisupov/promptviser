@@ -82,6 +82,15 @@ var FileScanResult_MessageDescription = &api.MessageDescription{
 			Documentation: `MetadataFlags carries boolean YAML metadata`,
 		},
 		{
+			Name:          "ASTTriggers",
+			FullName:      "pb.FileScanResult.ASTTriggers",
+			Display:       "AST Triggers",
+			Type:          "[]string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `ASTTriggers lists rule IDs or named patterns that fired based on AST analysis`,
+		},
+		{
 			Name:          "Scores",
 			FullName:      "pb.FileScanResult.Scores",
 			Type:          "[]struct",
@@ -199,6 +208,48 @@ var GetRulesResponse_MessageDescription = &api.MessageDescription{
 	},
 }
 
+var GetStatsRequest_MessageDescription = &api.MessageDescription{
+	Name:          "GetStatsRequest",
+	Display:       "Get Stats Request",
+	FullName:      "pb.GetStatsRequest",
+	Documentation: `GetStatsRequest carries optional parameters for the GetStats RPC.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:          "Limit",
+			FullName:      "pb.GetStatsRequest.Limit",
+			Type:          "int32",
+			SearchType:    "integer",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Limit is the maximum number of top violations to return. 0 = default (10).`,
+		},
+	},
+}
+
+var GetStatsResponse_MessageDescription = &api.MessageDescription{
+	Name:          "GetStatsResponse",
+	Display:       "Get Stats Response",
+	FullName:      "pb.GetStatsResponse",
+	Documentation: `GetStatsResponse returns aggregated violation statistics.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:       "TopViolations",
+			FullName:   "pb.GetStatsResponse.TopViolations",
+			Display:    "Top Violations",
+			Type:       "[]struct",
+			StructName: "pb.RuleViolationCount",
+			SearchType: "flat_object",
+		},
+		{
+			Name:          "TotalScans",
+			FullName:      "pb.GetStatsResponse.TotalScans",
+			Display:       "Total Scans",
+			Type:          "int64",
+			SearchType:    "integer",
+			SearchOptions: api.SearchOption_Sortable,
+		},
+	},
+}
+
 var MatchRulesRequest_MessageDescription = &api.MessageDescription{
 	Name:     "MatchRulesRequest",
 	Display:  "Match Rules Request",
@@ -256,6 +307,58 @@ var PromptFindings_MessageDescription = &api.MessageDescription{
 			StructName:    "pb.Finding",
 			SearchType:    "flat_object",
 			Documentation: `Findings lists all matched rules with remediation guidance.`,
+		},
+	},
+}
+
+var RuleViolationCount_MessageDescription = &api.MessageDescription{
+	Name:          "RuleViolationCount",
+	Display:       "Rule Violation Count",
+	FullName:      "pb.RuleViolationCount",
+	Documentation: `RuleViolationCount represents one rule's aggregated violation total.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:          "RuleID",
+			FullName:      "pb.RuleViolationCount.RuleID",
+			Display:       "Rule ID",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+		},
+		{
+			Name:          "Title",
+			FullName:      "pb.RuleViolationCount.Title",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+		},
+		{
+			Name:          "Severity",
+			FullName:      "pb.RuleViolationCount.Severity",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+		},
+		{
+			Name:          "Domain",
+			FullName:      "pb.RuleViolationCount.Domain",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+		},
+		{
+			Name:          "Standards",
+			FullName:      "pb.RuleViolationCount.Standards",
+			Type:          "[]string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+		},
+		{
+			Name:          "Count",
+			FullName:      "pb.RuleViolationCount.Count",
+			Type:          "int64",
+			SearchType:    "integer",
+			SearchOptions: api.SearchOption_Sortable,
 		},
 	},
 }
@@ -436,9 +539,12 @@ var (
 		"pb.Finding":                        Finding_MessageDescription,
 		"pb.GetRulesRequest":                GetRulesRequest_MessageDescription,
 		"pb.GetRulesResponse":               GetRulesResponse_MessageDescription,
+		"pb.GetStatsRequest":                GetStatsRequest_MessageDescription,
+		"pb.GetStatsResponse":               GetStatsResponse_MessageDescription,
 		"pb.MatchRulesRequest":              MatchRulesRequest_MessageDescription,
 		"pb.MatchRulesResponse":             MatchRulesResponse_MessageDescription,
 		"pb.PromptFindings":                 PromptFindings_MessageDescription,
+		"pb.RuleViolationCount":             RuleViolationCount_MessageDescription,
 		"pb.ServerStatus":                   ServerStatus_MessageDescription,
 		"pb.ServerStatusResponse":           ServerStatusResponse_MessageDescription,
 		"pb.ServerStatusResponse.PodsEntry": ServerStatusResponse_PodsEntry_MessageDescription,
@@ -454,9 +560,12 @@ var (
 		"pb.Finding":                        func() any { return new(Finding) },
 		"pb.GetRulesRequest":                func() any { return new(GetRulesRequest) },
 		"pb.GetRulesResponse":               func() any { return new(GetRulesResponse) },
+		"pb.GetStatsRequest":                func() any { return new(GetStatsRequest) },
+		"pb.GetStatsResponse":               func() any { return new(GetStatsResponse) },
 		"pb.MatchRulesRequest":              func() any { return new(MatchRulesRequest) },
 		"pb.MatchRulesResponse":             func() any { return new(MatchRulesResponse) },
 		"pb.PromptFindings":                 func() any { return new(PromptFindings) },
+		"pb.RuleViolationCount":             func() any { return new(RuleViolationCount) },
 		"pb.ServerStatus":                   func() any { return new(ServerStatus) },
 		"pb.ServerStatusResponse":           func() any { return new(ServerStatusResponse) },
 		"pb.ServerStatusResponse.PodsEntry": func() any { return make(map[string]string) },
@@ -469,6 +578,9 @@ var (
 func (m *GetRulesRequest) Validate(ctx context.Context) error {
 	return api.ValidateRequest(ctx, m, GetRulesRequest_MessageDescription)
 }
+func (m *GetStatsRequest) Validate(ctx context.Context) error {
+	return api.ValidateRequest(ctx, m, GetStatsRequest_MessageDescription)
+}
 func (m *MatchRulesRequest) Validate(ctx context.Context) error {
 	return api.ValidateRequest(ctx, m, MatchRulesRequest_MessageDescription)
 }
@@ -477,6 +589,9 @@ func (m *SubmitRequest) Validate(ctx context.Context) error {
 }
 func (m *GetRulesResponse) GetMessageDescription() *api.MessageDescription {
 	return GetRulesResponse_MessageDescription
+}
+func (m *GetStatsResponse) GetMessageDescription() *api.MessageDescription {
+	return GetStatsResponse_MessageDescription
 }
 func (m *MatchRulesResponse) GetMessageDescription() *api.MessageDescription {
 	return MatchRulesResponse_MessageDescription

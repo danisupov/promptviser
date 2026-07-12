@@ -63,6 +63,10 @@ func (s *Service) MatchRules(ctx context.Context, req *pb.MatchRulesRequest) (*p
 func FindingsForFile(fr *pb.FileScanResult, rules []*adviserdb.Rule) *pb.PromptFindings {
 	// build lookup sets once so each rule check is O(1)
 	staticSet := toSet(fr.StaticTriggers)
+	// AST triggers (pass3) participate in the same static matching logic.
+	for _, t := range fr.ASTTriggers {
+		staticSet[t] = true
+	}
 	metaSet := toSet(fr.MetadataFlags)
 	scoreMap := make(map[string]float64, len(fr.Scores))
 	for _, s := range fr.Scores {

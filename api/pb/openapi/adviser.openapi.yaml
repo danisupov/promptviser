@@ -33,6 +33,31 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /pb.Adviser/GetStats:
+        post:
+            tags:
+                - Adviser
+            description: GetStats returns aggregated rule-violation counts across all recorded scans.
+            operationId: Adviser_GetStats
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/GetStatsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GetStatsResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
     /pb.Adviser/MatchRules:
         post:
             tags:
@@ -117,6 +142,11 @@ components:
                     items:
                         type: string
                     description: MetadataFlags carries boolean YAML metadata
+                ASTTriggers:
+                    type: array
+                    items:
+                        type: string
+                    description: ASTTriggers lists rule IDs or named patterns that fired based on AST analysis
                 Scores:
                     type: array
                     items:
@@ -167,6 +197,24 @@ components:
                     items:
                         $ref: '#/components/schemas/Finding'
             description: GetRulesResponse returns the full rule catalogue.
+        GetStatsRequest:
+            type: object
+            properties:
+                Limit:
+                    type: integer
+                    description: Limit is the maximum number of top violations to return. 0 = default (10).
+                    format: int32
+            description: GetStatsRequest carries optional parameters for the GetStats RPC.
+        GetStatsResponse:
+            type: object
+            properties:
+                TopViolations:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RuleViolationCount'
+                TotalScans:
+                    type: string
+            description: GetStatsResponse returns aggregated violation statistics.
         GoogleProtobufAny:
             type: object
             properties:
@@ -206,6 +254,24 @@ components:
                         $ref: '#/components/schemas/Finding'
                     description: Findings lists all matched rules with remediation guidance.
             description: PromptFindings is the response for a single file, containing all matched rules.
+        RuleViolationCount:
+            type: object
+            properties:
+                RuleID:
+                    type: string
+                Title:
+                    type: string
+                Severity:
+                    type: string
+                Domain:
+                    type: string
+                Standards:
+                    type: array
+                    items:
+                        type: string
+                Count:
+                    type: string
+            description: RuleViolationCount represents one rule's aggregated violation total.
         Status:
             type: object
             properties:

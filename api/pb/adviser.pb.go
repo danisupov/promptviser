@@ -177,8 +177,10 @@ type FileScanResult struct {
 	StaticTriggers []string `protobuf:"bytes,2,rep,name=StaticTriggers,proto3" json:"StaticTriggers,omitempty"`
 	// MetadataFlags carries boolean YAML metadata
 	MetadataFlags []string `protobuf:"bytes,3,rep,name=MetadataFlags,proto3" json:"MetadataFlags,omitempty"`
+	// ASTTriggers lists rule IDs or named patterns that fired based on AST analysis
+	ASTTriggers []string `protobuf:"bytes,4,rep,name=ASTTriggers,proto3" json:"ASTTriggers,omitempty"`
 	// Scores contains LLM-derived dimension scores
-	Scores        []*DimensionScore `protobuf:"bytes,4,rep,name=Scores,proto3" json:"Scores,omitempty"`
+	Scores        []*DimensionScore `protobuf:"bytes,5,rep,name=Scores,proto3" json:"Scores,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -230,6 +232,13 @@ func (x *FileScanResult) GetStaticTriggers() []string {
 func (x *FileScanResult) GetMetadataFlags() []string {
 	if x != nil {
 		return x.MetadataFlags
+	}
+	return nil
+}
+
+func (x *FileScanResult) GetASTTriggers() []string {
+	if x != nil {
+		return x.ASTTriggers
 	}
 	return nil
 }
@@ -588,6 +597,190 @@ func (x *GetRulesResponse) GetRules() []*Finding {
 	return nil
 }
 
+// GetStatsRequest carries optional parameters for the GetStats RPC.
+type GetStatsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Limit is the maximum number of top violations to return. 0 = default (10).
+	Limit         int32 `protobuf:"varint,1,opt,name=Limit,proto3" json:"Limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatsRequest) Reset() {
+	*x = GetStatsRequest{}
+	mi := &file_adviser_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatsRequest) ProtoMessage() {}
+
+func (x *GetStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatsRequest.ProtoReflect.Descriptor instead.
+func (*GetStatsRequest) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetStatsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// RuleViolationCount represents one rule's aggregated violation total.
+type RuleViolationCount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RuleID        string                 `protobuf:"bytes,1,opt,name=RuleID,proto3" json:"RuleID,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=Title,proto3" json:"Title,omitempty"`
+	Severity      string                 `protobuf:"bytes,3,opt,name=Severity,proto3" json:"Severity,omitempty"`
+	Domain        string                 `protobuf:"bytes,4,opt,name=Domain,proto3" json:"Domain,omitempty"`
+	Standards     []string               `protobuf:"bytes,5,rep,name=Standards,proto3" json:"Standards,omitempty"`
+	Count         int64                  `protobuf:"varint,6,opt,name=Count,proto3" json:"Count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RuleViolationCount) Reset() {
+	*x = RuleViolationCount{}
+	mi := &file_adviser_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RuleViolationCount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RuleViolationCount) ProtoMessage() {}
+
+func (x *RuleViolationCount) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RuleViolationCount.ProtoReflect.Descriptor instead.
+func (*RuleViolationCount) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RuleViolationCount) GetRuleID() string {
+	if x != nil {
+		return x.RuleID
+	}
+	return ""
+}
+
+func (x *RuleViolationCount) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *RuleViolationCount) GetSeverity() string {
+	if x != nil {
+		return x.Severity
+	}
+	return ""
+}
+
+func (x *RuleViolationCount) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *RuleViolationCount) GetStandards() []string {
+	if x != nil {
+		return x.Standards
+	}
+	return nil
+}
+
+func (x *RuleViolationCount) GetCount() int64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+// GetStatsResponse returns aggregated violation statistics.
+type GetStatsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TopViolations []*RuleViolationCount  `protobuf:"bytes,1,rep,name=TopViolations,proto3" json:"TopViolations,omitempty"`
+	TotalScans    int64                  `protobuf:"varint,2,opt,name=TotalScans,proto3" json:"TotalScans,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatsResponse) Reset() {
+	*x = GetStatsResponse{}
+	mi := &file_adviser_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatsResponse) ProtoMessage() {}
+
+func (x *GetStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatsResponse.ProtoReflect.Descriptor instead.
+func (*GetStatsResponse) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetStatsResponse) GetTopViolations() []*RuleViolationCount {
+	if x != nil {
+		return x.TopViolations
+	}
+	return nil
+}
+
+func (x *GetStatsResponse) GetTotalScans() int64 {
+	if x != nil {
+		return x.TotalScans
+	}
+	return 0
+}
+
 var File_adviser_proto protoreflect.FileDescriptor
 
 const file_adviser_proto_rawDesc = "" +
@@ -599,12 +792,13 @@ const file_adviser_proto_rawDesc = "" +
 	"\x02ID\x18\x01 \x01(\tR\x02ID\"D\n" +
 	"\x0eDimensionScore\x12\x1c\n" +
 	"\tDimension\x18\x01 \x01(\tR\tDimension\x12\x14\n" +
-	"\x05Score\x18\x02 \x01(\x02R\x05Score\"\xa6\x01\n" +
+	"\x05Score\x18\x02 \x01(\x02R\x05Score\"\xc8\x01\n" +
 	"\x0eFileScanResult\x12\x1a\n" +
 	"\bFileName\x18\x01 \x01(\tR\bFileName\x12&\n" +
 	"\x0eStaticTriggers\x18\x02 \x03(\tR\x0eStaticTriggers\x12$\n" +
-	"\rMetadataFlags\x18\x03 \x03(\tR\rMetadataFlags\x12*\n" +
-	"\x06Scores\x18\x04 \x03(\v2\x12.pb.DimensionScoreR\x06Scores\"I\n" +
+	"\rMetadataFlags\x18\x03 \x03(\tR\rMetadataFlags\x12 \n" +
+	"\vASTTriggers\x18\x04 \x03(\tR\vASTTriggers\x12*\n" +
+	"\x06Scores\x18\x05 \x03(\v2\x12.pb.DimensionScoreR\x06Scores\"I\n" +
 	"\x11MatchRulesRequest\x124\n" +
 	"\vFileResults\x18\x01 \x03(\v2\x12.pb.FileScanResultR\vFileResults\"U\n" +
 	"\x0ePromptFindings\x12\x1a\n" +
@@ -624,12 +818,27 @@ const file_adviser_proto_rawDesc = "" +
 	"\x06Domain\x18\x01 \x01(\tR\x06Domain\x12\x1a\n" +
 	"\bSeverity\x18\x02 \x01(\tR\bSeverity\"5\n" +
 	"\x10GetRulesResponse\x12!\n" +
-	"\x05Rules\x18\x01 \x03(\v2\v.pb.FindingR\x05Rules2\xb4\x02\n" +
+	"\x05Rules\x18\x01 \x03(\v2\v.pb.FindingR\x05Rules\"'\n" +
+	"\x0fGetStatsRequest\x12\x14\n" +
+	"\x05Limit\x18\x01 \x01(\x05R\x05Limit\"\xaa\x01\n" +
+	"\x12RuleViolationCount\x12\x16\n" +
+	"\x06RuleID\x18\x01 \x01(\tR\x06RuleID\x12\x14\n" +
+	"\x05Title\x18\x02 \x01(\tR\x05Title\x12\x1a\n" +
+	"\bSeverity\x18\x03 \x01(\tR\bSeverity\x12\x16\n" +
+	"\x06Domain\x18\x04 \x01(\tR\x06Domain\x12\x1c\n" +
+	"\tStandards\x18\x05 \x03(\tR\tStandards\x12\x14\n" +
+	"\x05Count\x18\x06 \x01(\x03R\x05Count\"p\n" +
+	"\x10GetStatsResponse\x12<\n" +
+	"\rTopViolations\x18\x01 \x03(\v2\x16.pb.RuleViolationCountR\rTopViolations\x12\x1e\n" +
+	"\n" +
+	"TotalScans\x18\x02 \x01(\x03R\n" +
+	"TotalScans2\x98\x03\n" +
 	"\aAdviser\x12W\n" +
 	"\x06Submit\x12\x11.pb.SubmitRequest\x1a\x12.pb.SubmitResponse\"&\x82C\x06submit\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/pb.Adviser/Submit\x12l\n" +
 	"\n" +
 	"MatchRules\x12\x15.pb.MatchRulesRequest\x1a\x16.pb.MatchRulesResponse\"/\x82C\vmatch-rules\x82\xd3\xe4\x93\x02\x1b:\x01*\"\x16/pb.Adviser/MatchRules\x12b\n" +
-	"\bGetRules\x12\x13.pb.GetRulesRequest\x1a\x14.pb.GetRulesResponse\"+\x82C\tget-rules\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/pb.Adviser/GetRulesB2Z0github.com/effective-security/promptviser/api/pbb\x06proto3"
+	"\bGetRules\x12\x13.pb.GetRulesRequest\x1a\x14.pb.GetRulesResponse\"+\x82C\tget-rules\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/pb.Adviser/GetRules\x12b\n" +
+	"\bGetStats\x12\x13.pb.GetStatsRequest\x1a\x14.pb.GetStatsResponse\"+\x82C\tget-stats\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/pb.Adviser/GetStatsB2Z0github.com/effective-security/promptviser/api/pbb\x06proto3"
 
 var (
 	file_adviser_proto_rawDescOnce sync.Once
@@ -643,7 +852,7 @@ func file_adviser_proto_rawDescGZIP() []byte {
 	return file_adviser_proto_rawDescData
 }
 
-var file_adviser_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_adviser_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_adviser_proto_goTypes = []any{
 	(*SubmitRequest)(nil),      // 0: pb.SubmitRequest
 	(*SubmitResponse)(nil),     // 1: pb.SubmitResponse
@@ -655,24 +864,30 @@ var file_adviser_proto_goTypes = []any{
 	(*MatchRulesResponse)(nil), // 7: pb.MatchRulesResponse
 	(*GetRulesRequest)(nil),    // 8: pb.GetRulesRequest
 	(*GetRulesResponse)(nil),   // 9: pb.GetRulesResponse
+	(*GetStatsRequest)(nil),    // 10: pb.GetStatsRequest
+	(*RuleViolationCount)(nil), // 11: pb.RuleViolationCount
+	(*GetStatsResponse)(nil),   // 12: pb.GetStatsResponse
 }
 var file_adviser_proto_depIdxs = []int32{
-	2, // 0: pb.FileScanResult.Scores:type_name -> pb.DimensionScore
-	3, // 1: pb.MatchRulesRequest.FileResults:type_name -> pb.FileScanResult
-	6, // 2: pb.PromptFindings.Findings:type_name -> pb.Finding
-	5, // 3: pb.MatchRulesResponse.Findings:type_name -> pb.PromptFindings
-	6, // 4: pb.GetRulesResponse.Rules:type_name -> pb.Finding
-	0, // 5: pb.Adviser.Submit:input_type -> pb.SubmitRequest
-	4, // 6: pb.Adviser.MatchRules:input_type -> pb.MatchRulesRequest
-	8, // 7: pb.Adviser.GetRules:input_type -> pb.GetRulesRequest
-	1, // 8: pb.Adviser.Submit:output_type -> pb.SubmitResponse
-	7, // 9: pb.Adviser.MatchRules:output_type -> pb.MatchRulesResponse
-	9, // 10: pb.Adviser.GetRules:output_type -> pb.GetRulesResponse
-	8, // [8:11] is the sub-list for method output_type
-	5, // [5:8] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	2,  // 0: pb.FileScanResult.Scores:type_name -> pb.DimensionScore
+	3,  // 1: pb.MatchRulesRequest.FileResults:type_name -> pb.FileScanResult
+	6,  // 2: pb.PromptFindings.Findings:type_name -> pb.Finding
+	5,  // 3: pb.MatchRulesResponse.Findings:type_name -> pb.PromptFindings
+	6,  // 4: pb.GetRulesResponse.Rules:type_name -> pb.Finding
+	11, // 5: pb.GetStatsResponse.TopViolations:type_name -> pb.RuleViolationCount
+	0,  // 6: pb.Adviser.Submit:input_type -> pb.SubmitRequest
+	4,  // 7: pb.Adviser.MatchRules:input_type -> pb.MatchRulesRequest
+	8,  // 8: pb.Adviser.GetRules:input_type -> pb.GetRulesRequest
+	10, // 9: pb.Adviser.GetStats:input_type -> pb.GetStatsRequest
+	1,  // 10: pb.Adviser.Submit:output_type -> pb.SubmitResponse
+	7,  // 11: pb.Adviser.MatchRules:output_type -> pb.MatchRulesResponse
+	9,  // 12: pb.Adviser.GetRules:output_type -> pb.GetRulesResponse
+	12, // 13: pb.Adviser.GetStats:output_type -> pb.GetStatsResponse
+	10, // [10:14] is the sub-list for method output_type
+	6,  // [6:10] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_adviser_proto_init() }
@@ -686,7 +901,7 @@ func file_adviser_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_adviser_proto_rawDesc), len(file_adviser_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

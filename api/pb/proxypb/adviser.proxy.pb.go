@@ -163,6 +163,7 @@ func (s *postproxyAdviserClient) GetRules(ctx context.Context, req *pb.GetRulesR
 
 // GetStats returns aggregated rule-violation counts across all recorded scans.
 func (s *proxyAdviserServer) GetStats(ctx context.Context, req *pb.GetStatsRequest, opts ...grpc.CallOption) (*pb.GetStatsResponse, error) {
+	// add correlation ID to outgoing RPC calls
 	ctx = correlation.WithMetaFromContext(ctx)
 	res, err := s.srv.GetStats(ctx, req)
 	if err != nil {
@@ -173,6 +174,7 @@ func (s *proxyAdviserServer) GetStats(ctx context.Context, req *pb.GetStatsReque
 
 // GetStats returns aggregated rule-violation counts across all recorded scans.
 func (s *proxyAdviserClient) GetStats(ctx context.Context, req *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {
+	// add correlation ID to outgoing RPC calls
 	ctx = correlation.WithMetaFromContext(ctx)
 	res, err := s.remote.GetStats(ctx, req, s.callOpts...)
 	if err != nil {

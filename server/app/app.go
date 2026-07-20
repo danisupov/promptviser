@@ -195,7 +195,9 @@ func (a *App) Run(startedCh chan<- bool) error {
 		a.OnClose(closer)
 	}
 
-	if !a.cfg.Metrics.GetDisabled() {
+	if a.flags.DryRun {
+		logger.KV(xlog.NOTICE, "status", "metrics_disabled")
+	} else if !a.cfg.Metrics.GetDisabled() {
 		ver := version.Current()
 		closer, err := appinit.Metrics(
 			&a.cfg.Metrics,

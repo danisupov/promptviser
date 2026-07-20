@@ -61,11 +61,6 @@ var patterns = []pattern{
 	// Agentic loop without termination
 	{regexp.MustCompile(`(?i)\b(?:repeat\s+until|loop\s+until|keep\s+trying|retry\s+indefinitely)\b`), "AGENTIC_LOOP_NO_TERMINATION"},
 
-	// Missing AI self-identification — fires only on explicit first-person
-	// declarations ("I am an AI / language model"). Role-description phrases
-	// like "an AI assistant" are intentionally excluded to avoid false positives.
-	{regexp.MustCompile(`(?i)\bI\s+am\s+an?\s+(?:AI\b|language\s+model)\b`), "MISSING_AI_DISCLOSURE"},
-
 	// Synthetic media generation
 	{regexp.MustCompile(`(?i)\b(?:generate\s+image\s+of|create\s+a\s+photo|make\s+a\s+voice|synthesize\s+audio|impersonate|write\s+as\s+if\s+you\s+are)\b`), "SYNTHETIC_MEDIA_GENERATION"},
 

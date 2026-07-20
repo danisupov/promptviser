@@ -33,7 +33,7 @@ var sampleRules = []*adviserdb.Rule{
 		Name:           "High-stakes output with no human oversight clause",
 		Severity:       "High",
 		TriggerType:    "score",
-		ScoreTriggers:  map[string]float64{"output_consequence_gt": 0.75, "human_oversight_lt": 0.3},
+		ScoreTriggers:  map[string]float64{"output_consequence_gt": 0.75, "human_oversight_gt": 0.6},
 		StaticTriggers: nil,
 		MetadataFlags:  nil,
 		Remediation:    "Add a human oversight clause.",
@@ -79,7 +79,79 @@ var sampleRules = []*adviserdb.Rule{
 
 // ----- MatchRules tests -------------------------------------------------------
 
-func TestMatchRules_HighConsequenceLowOversight_ReturnsREL003(t *testing.T) {
+func TestMatchRules_GreaterThanThresholdMatchesAtBoundary(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	rule := &adviserdb.Rule{
+		RuleID:      "TEST-001",
+		Domain:      "Test",
+		Name:        "Boundary threshold",
+		Severity:    "High",
+		TriggerType: "score",
+		ScoreTriggers: map[string]float64{
+			"output_consequence_gt": 0.8,
+		},
+	}
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return([]*adviserdb.Rule{rule}, nil)
+	mockDB.EXPECT().
+		RecordFindings(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).AnyTimes()
+
+	req := &pb.MatchRulesRequest{
+		FileResults: []*pb.FileScanResult{{
+			FileName: "prompts/boundary.yaml",
+			Scores:   []*pb.DimensionScore{{Dimension: "output_consequence", Score: 0.8}},
+		}},
+	}
+
+	resp, err := svc.MatchRules(context.Background(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.Findings, 1)
+
+	ruleIDs := ruleIDsForFile(resp.Findings, "prompts/boundary.yaml")
+	require.Contains(t, ruleIDs, "TEST-001")
+}
+
+func TestMatchRules_HighRefusalInstructions_ReturnsREL004(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	rule := &adviserdb.Rule{
+		RuleID:      "REL-004",
+		Domain:      "Reliability & Safety",
+		Name:        "No refusal or out-of-scope handling instruction",
+		Severity:    "Medium",
+		TriggerType: "score",
+		ScoreTriggers: map[string]float64{
+			"refusal_instructions_gt": 0.6,
+		},
+	}
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return([]*adviserdb.Rule{rule}, nil)
+	mockDB.EXPECT().
+		RecordFindings(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).AnyTimes()
+
+	req := &pb.MatchRulesRequest{
+		FileResults: []*pb.FileScanResult{{
+			FileName: "prompts/refusal.yaml",
+			Scores:   []*pb.DimensionScore{{Dimension: "refusal_instructions", Score: 0.9}},
+		}},
+	}
+
+	resp, err := svc.MatchRules(context.Background(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.Findings, 1)
+
+	ruleIDs := ruleIDsForFile(resp.Findings, "prompts/refusal.yaml")
+	require.Contains(t, ruleIDs, "REL-004")
+}
+
+func TestMatchRules_HighConsequenceHighOversight_ReturnsREL003(t *testing.T) {
 	svc, mockDB := newService(t)
 
 	mockDB.EXPECT().
@@ -95,7 +167,7 @@ func TestMatchRules_HighConsequenceLowOversight_ReturnsREL003(t *testing.T) {
 				FileName: "prompts/agent.yaml",
 				Scores: []*pb.DimensionScore{
 					{Dimension: "output_consequence", Score: 0.9},
-					{Dimension: "human_oversight", Score: 0.1},
+					{Dimension: "human_oversight", Score: 0.9},
 				},
 			},
 		},

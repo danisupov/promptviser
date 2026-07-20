@@ -1,4 +1,4 @@
 {
   "must_contain": ["SEC-001"],
-  "must_not_contain": ["PRIV-003", "REL-005", "ACC-001", "PE-001"]
+  "must_not_contain": ["PRIV-003", "REL-005", "PE-001"]
 }

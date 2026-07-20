@@ -203,25 +203,25 @@ func Test_ScanCoverageBad(t *testing.T) {
 
 	// data-collection: no persona, PII vars, Bearer secret, confidentiality phrase, memory ref, user input
 	check("testdata/coverage-bad/prompts/data-collection.yaml",
-		[]string{"PII_VARIABLE", "HARDCODED_SECRET", "CONFIDENTIALITY_INSTRUCTION", "MEMORY_REFERENCE", "MISSING_DELIMITER", "MISSING_PERSONA", "NEGATIVE_ONLY_INSTRUCTION"},
+		[]string{"PII_VARIABLE", "HARDCODED_SECRET", "CONFIDENTIALITY_INSTRUCTION", "MEMORY_REFERENCE", "MISSING_DELIMITER", "MISSING_PERSONA", "NEGATIVE_ONLY_INSTRUCTION", "MISSING_AI_DISCLOSURE", "MISSING_FORMAT_INSTRUCTION"},
 		[]string{"is_user_facing", "domain:medical"},
 	)
 
 	// decision-bot: no persona, bias keywords, synthetic media
 	check("testdata/coverage-bad/prompts/decision-bot.yaml",
-		[]string{"MISSING_BIAS_GUARDRAIL", "SYNTHETIC_MEDIA_GENERATION", "MISSING_PERSONA"},
+		[]string{"MISSING_BIAS_GUARDRAIL", "SYNTHETIC_MEDIA_GENERATION", "MISSING_PERSONA", "MISSING_AI_DISCLOSURE"},
 		[]string{"is_user_facing", "domain:hiring"},
 	)
 
 	// high-stakes: has "You are", crisis keywords, loop, uncertainty phrase, RAG block, user input
 	check("testdata/coverage-bad/prompts/high-stakes.yaml",
-		[]string{"MISSING_UNCERTAINTY_CLAUSE", "MISSING_CRISIS_ESCALATION", "AGENTIC_LOOP_NO_TERMINATION", "NEGATIVE_ONLY_INSTRUCTION", "MISSING_DELIMITER"},
+		[]string{"MISSING_UNCERTAINTY_CLAUSE", "MISSING_CRISIS_ESCALATION", "AGENTIC_LOOP_NO_TERMINATION", "NEGATIVE_ONLY_INSTRUCTION", "MISSING_DELIMITER", "MISSING_AI_DISCLOSURE", "MISSING_FORMAT_INSTRUCTION"},
 		[]string{"is_user_facing", "domain:mental_health"},
 	)
 
 	// injection-surface: no "You are", retrieved content, multi-agent, unsanitized output, user input
 	check("testdata/coverage-bad/prompts/injection-surface.yaml",
-		[]string{"EXTERNAL_CONTENT_INGESTION", "MULTI_AGENT_REFERENCE", "UNSANITIZED_OUTPUT", "MISSING_DELIMITER", "MISSING_PERSONA"},
+		[]string{"EXTERNAL_CONTENT_INGESTION", "MULTI_AGENT_REFERENCE", "UNSANITIZED_OUTPUT", "MISSING_DELIMITER", "MISSING_PERSONA", "MISSING_AI_DISCLOSURE"},
 		[]string{"is_user_facing"},
 	)
 

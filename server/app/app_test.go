@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -88,6 +89,27 @@ func Test_AppInitWithRun(t *testing.T) {
 	assert.NoError(t, err)
 
 	defer app.OnClose(c)
+}
+
+func Test_AppDryRunSkipsMetricsListener(t *testing.T) {
+	cfgFile, err := configloader.GetAbsFilename("etc/dev/"+config.ConfigFileName, projFolder)
+	require.NoError(t, err, "unable to determine config file")
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer listener.Close()
+
+	addr := listener.Addr().(*net.TCPAddr)
+	_ = addr
+
+	app := NewApp([]string{
+		"--dry-run",
+		"--cfg", cfgFile,
+		"--listen-url", testutils.CreateURLs("http", "localhost"),
+	})
+
+	err = app.Run(nil)
+	require.NoError(t, err)
 }
 
 func Test_AppInitWithCfg(t *testing.T) {

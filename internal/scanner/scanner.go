@@ -81,9 +81,11 @@ func Scan(ctx context.Context, dir string, provider llm.Provider) ([]*pb.FileSca
 			}
 
 			// Pass 1: regex-based static analysis on the prompt text.
-			promptResult.StaticTriggers = pass1.Check(content)
+			pass1Triggers := pass1.Check(content)
 			// Pass 2: YAML metadata flags.
-			promptResult.MetadataFlags = pass2.Analyze(content)
+			metadataFlags := pass2.Analyze(content)
+			promptResult.StaticTriggers = enrichStaticTriggers(content, pass1Triggers, metadataFlags)
+			promptResult.MetadataFlags = metadataFlags
 			// Pass 3: AST analysis on source files that call this prompt.
 			// Each caller that produces triggers becomes its own FileScanResult.
 			callerResults := scanCallers(findCallerFiles(path, dir))
@@ -192,6 +194,63 @@ func collectPromptFiles(dir string) ([]string, error) {
 
 // mergeScores averages duplicate dimensions across files so the server
 // receives one score per dimension regardless of how many files were scanned.
+func enrichStaticTriggers(content []byte, initial []string, metadataFlags []string) []string {
+	triggered := make(map[string]struct{}, len(initial)+2)
+	for _, trigger := range initial {
+		triggered[trigger] = struct{}{}
+	}
+
+	if shouldFlagMissingAIIdentity(content, metadataFlags) {
+		triggered["MISSING_AI_DISCLOSURE"] = struct{}{}
+	}
+	if shouldFlagMissingFormatInstruction(content) {
+		triggered["MISSING_FORMAT_INSTRUCTION"] = struct{}{}
+	}
+
+	out := make([]string, 0, len(triggered))
+	for trigger := range triggered {
+		out = append(out, trigger)
+	}
+	return out
+}
+
+func shouldFlagMissingAIIdentity(content []byte, metadataFlags []string) bool {
+	if !hasMetadataFlag(metadataFlags, "is_user_facing") {
+		return false
+	}
+
+	lower := bytes.ToLower(content)
+	if bytes.Contains(lower, []byte("i am an ai")) || bytes.Contains(lower, []byte("i am a language model")) ||
+		bytes.Contains(lower, []byte("i'm an ai")) || bytes.Contains(lower, []byte("i'm a language model")) ||
+		bytes.Contains(lower, []byte("ai assistant")) || bytes.Contains(lower, []byte("ai chatbot")) ||
+		bytes.Contains(lower, []byte("language model")) || bytes.Contains(lower, []byte("you are not a human")) {
+		return false
+	}
+	return true
+}
+
+func shouldFlagMissingFormatInstruction(content []byte) bool {
+	lower := bytes.ToLower(content)
+	if !bytes.Contains(lower, []byte("answer")) && !bytes.Contains(lower, []byte("respond")) && !bytes.Contains(lower, []byte("reply")) {
+		return false
+	}
+	for _, hint := range []string{"format", "structure", "bullet", "paragraph", "sentence", "json", "plain text", "list", "table"} {
+		if bytes.Contains(lower, []byte(hint)) {
+			return false
+		}
+	}
+	return true
+}
+
+func hasMetadataFlag(flags []string, want string) bool {
+	for _, flag := range flags {
+		if flag == want {
+			return true
+		}
+	}
+	return false
+}
+
 func mergeScores(existing, incoming []*pb.DimensionScore) []*pb.DimensionScore {
 	index := make(map[string]int, len(existing))
 	counts := make(map[string]int, len(existing))

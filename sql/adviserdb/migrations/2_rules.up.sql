@@ -2,7 +2,7 @@ BEGIN;
 
 -- rules table stores the full catalogue of prompt-safety rules.
 -- score_triggers holds threshold conditions as a JSONB map, e.g.
---   {"pii_exposure_gt": 0.7, "human_oversight_lt": 0.3}
+--   {"pii_exposure_gt": 0.7, "human_oversight_gt": 0.6}
 -- static_triggers holds named Pass-1/Pass-2 pattern keys, e.g.
 --   ["MISSING_DELIMITER", "HARDCODED_SECRET"]
 -- metadata_flags holds required YAML metadata flags, e.g.
@@ -202,7 +202,7 @@ INSERT INTO rules (rule_id, domain, name, severity, trigger_type, score_triggers
     'High-stakes output with no human oversight clause',
     'High',
     'score',
-    '{"output_consequence_gt": 0.75, "human_oversight_lt": 0.3}'::JSONB,
+    '{"output_consequence_gt": 0.75, "human_oversight_gt": 0.6}'::JSONB,
     ARRAY[]::TEXT[],
     ARRAY[]::TEXT[],
     'Add: ''This response is AI-generated and should not be the sole basis for [medical/legal/financial] decisions. A qualified professional should review before action is taken.''',
@@ -214,7 +214,7 @@ INSERT INTO rules (rule_id, domain, name, severity, trigger_type, score_triggers
     'No refusal or out-of-scope handling instruction',
     'Medium',
     'combined',
-    '{"refusal_instructions_lt": 0.2}'::JSONB,
+    '{"refusal_instructions_gt": 0.6}'::JSONB,
     ARRAY['MISSING_REFUSAL_INSTRUCTION'],
     ARRAY[]::TEXT[],
     'Add: ''If asked about topics outside your defined scope, say: That''s outside what I''m designed to help with. For [topic], I''d suggest [alternative resource].''',

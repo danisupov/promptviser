@@ -54,6 +54,14 @@ func Test_regex(t *testing.T) {
 			`,
 			expected: []string{},
 		},
+		{
+			name: "Missing crisis escalation",
+			content: `
+				The user is in a crisis and needs support.
+				Provide calm, compassionate guidance.
+			`,
+			expected: []string{"MISSING_PERSONA"},
+		},
 	}
 
 	for _, tt := range tests {

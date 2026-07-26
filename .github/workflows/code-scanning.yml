@@ -40,10 +40,24 @@ jobs:
 
       - name: Wait for server readiness
         run: |
-          until curl -kfs https://localhost:7880/healthz >/dev/null; do
-            echo "waiting for promptviser..."
+          for i in $(seq 1 60); do
+            if curl -kfs https://localhost:7880/healthz >/dev/null; then
+              exit 0
+            fi
+
+            if ! kill -0 "$(cat /tmp/promptviser/promptviser.pid)" 2>/dev/null; then
+              echo "promptviser exited before becoming ready"
+              cat /tmp/promptviser/promptviser.log
+              exit 1
+            fi
+
+            echo "waiting for promptviser... ($i/60)"
             sleep 2
           done
+
+          echo "promptviser did not become ready in time"
+          cat /tmp/promptviser/promptviser.log
+          exit 1
 
       - name: Run scan and write SARIF
         run: |

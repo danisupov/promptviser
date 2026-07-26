@@ -22,10 +22,13 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24'
+          go-version: '1.25'
 
       - name: Configure promptviser config path
         run: echo "PROMPTVISER_CONFIG_DIR=$GITHUB_WORKSPACE/etc/dev" >> "$GITHUB_ENV"
+
+      - name: Prepare tools
+        run: make tools
 
       - name: Prepare local stack
         run: make folders gen_test_certs start-localstack start-sql build

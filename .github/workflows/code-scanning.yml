@@ -11,6 +11,12 @@ permissions:
   actions: read
   security-events: write
 
+env:
+  PROMPTVISER_JWT_SEED: testseed
+  PROMPTVISER_DP_SEED: testseed
+  PROMPTVISER_GITHUB_CLIENT_ID: testclientid
+  PROMPTVISER_GITHUB_CLIENT_SECRET: testclientsecret
+
 jobs:
   scan:
     runs-on: ubuntu-latest

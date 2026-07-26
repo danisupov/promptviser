@@ -22,7 +22,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.26.5'
 
       - name: Configure promptviser config path
         run: echo "PROMPTVISER_CONFIG_DIR=$GITHUB_WORKSPACE/etc/dev" >> "$GITHUB_ENV"

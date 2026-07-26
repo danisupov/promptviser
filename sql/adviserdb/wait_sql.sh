@@ -13,9 +13,15 @@ shift # past pwd
 cmd="$@"
 
 echo "*** sql: waiting on adviserdb..."
-sleep 3
 
-until PGPASSWORD=$POSTGRES_PWD psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -lqt | cut -d \| -f 1 | grep -qw postgres; do
+if command -v pg_isready >/dev/null 2>&1; then
+  until PGPASSWORD=$POSTGRES_PWD pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER >/dev/null 2>&1; do
+    >&2 echo "adviserdb is unavailable $POSTGRES_HOST:$POSTGRES_PORT - sleeping"
+    sleep 3
+  done
+fi
+
+until PGPASSWORD=$POSTGRES_PWD psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d postgres -Atqc "select 1" >/dev/null 2>&1; do
   >&2 echo "adviserdb is unavailable $POSTGRES_HOST:$POSTGRES_PORT - sleeping"
   >&2 PGPASSWORD=$POSTGRES_PWD psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -lqt
   sleep 3

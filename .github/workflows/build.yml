@@ -92,7 +92,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.24'
 
       - name: Prepare
         run: make vars tools folders generate version change_log

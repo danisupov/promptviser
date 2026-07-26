@@ -6,7 +6,12 @@ WHERE
 
 DROP DATABASE IF EXISTS adviserdb;
 
-REVOKE ALL ON SCHEMA public FROM promptviser;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'promptviser') THEN
+        EXECUTE 'REVOKE ALL ON SCHEMA public FROM promptviser';
+    END IF;
+END $$;
 
 DROP USER IF EXISTS promptviser;
 

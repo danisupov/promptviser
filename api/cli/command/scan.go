@@ -12,6 +12,7 @@ import (
 
 	"github.com/effective-security/promptviser/api/cli"
 	"github.com/effective-security/promptviser/api/pb"
+	"github.com/effective-security/promptviser/api/version"
 	"github.com/effective-security/promptviser/internal/config"
 	"github.com/effective-security/promptviser/internal/llm"
 	"github.com/effective-security/promptviser/internal/reporter"
@@ -20,10 +21,12 @@ import (
 
 // ScanCmd scans prompts and returns the findings
 type ScanCmd struct {
-	Path      string `arg:"" help:"Path to the project directory to scan" type:"existingdir"`
-	Save      bool   `help:"Save scan results to ~/.config/promptviser/scans/"`
-	Verbose   bool   `short:"v" help:"Verbose output"`
-	Remediate bool   `help:"Generate LLM remediation suggestions for each file with findings"`
+	Path        string `arg:"" help:"Path to the project directory to scan" type:"existingdir"`
+	Save        bool   `help:"Save scan results to ~/.config/promptviser/scans/"`
+	Verbose     bool   `short:"v" help:"Verbose output"`
+	Remediate   bool   `help:"Generate LLM remediation suggestions for each file with findings"`
+	Sarif       bool   `help:"Write SARIF output instead of human-readable text"`
+	SarifOutput string `help:"SARIF output file path" default:"promptviser.sarif.json"`
 }
 
 // Run the command
@@ -79,6 +82,18 @@ func (a *ScanCmd) Run(c *cli.Cli) error {
 			return c.Print(resp)
 		}
 		reporter.PrintScanSummary(resp, scanID)
+		if a.Remediate {
+			runRemediation(ctx, c, provider, resp)
+		}
+		return nil
+	}
+
+	if a.Sarif {
+		sarif := reporter.BuildSARIF(resp, version.Current().String())
+		if err := reporter.WriteSARIF(a.SarifOutput, sarif); err != nil {
+			fmt.Fprintf(c.ErrWriter(), "%s	failed to write SARIF: %v\n", reporter.Warn, err)
+			return fmt.Errorf("failed to write SARIF: %w", err)
+		}
 		if a.Remediate {
 			runRemediation(ctx, c, provider, resp)
 		}

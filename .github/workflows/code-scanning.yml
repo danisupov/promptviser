@@ -1,0 +1,83 @@
+name: Code Scanning
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+env:
+  PROMPTVISER_JWT_SEED: testseed
+  PROMPTVISER_DP_SEED: testseed
+  PROMPTVISER_GITHUB_CLIENT_ID: testclientid
+  PROMPTVISER_GITHUB_CLIENT_SECRET: testclientsecret
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.5'
+
+      - name: Configure promptviser config path
+        run: echo "PROMPTVISER_CONFIG_DIR=$GITHUB_WORKSPACE/etc/dev" >> "$GITHUB_ENV"
+
+      - name: Prepare tools
+        run: make tools
+
+      - name: Prepare local stack
+        run: make folders gen_test_certs start-localstack start-sql build
+
+      - name: Start promptviser server
+        run: |
+          nohup ./bin/promptviser --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.yaml" --only-server wfe > /tmp/promptviser/promptviser.log 2>&1 &
+          echo $! > /tmp/promptviser/promptviser.pid
+
+      - name: Wait for server readiness
+        run: |
+          for i in $(seq 1 60); do
+            if curl -kfs https://localhost:7880/healthz >/dev/null; then
+              exit 0
+            fi
+
+            if ! kill -0 "$(cat /tmp/promptviser/promptviser.pid)" 2>/dev/null; then
+              echo "promptviser exited before becoming ready"
+              cat /tmp/promptviser/promptviser.log
+              exit 1
+            fi
+
+            echo "waiting for promptviser... ($i/60)"
+            sleep 2
+          done
+
+          echo "promptviser did not become ready in time"
+          cat /tmp/promptviser/promptviser.log
+          exit 1
+
+      - name: Run scan and write SARIF
+        run: |
+          ./bin/promptviserctl scan . \
+            --http \
+            --server https://localhost:7880 \
+            --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.unittest.yaml" \
+            --trusted-ca /tmp/promptviser/certs/trusty_root_ca.pem \
+            --storage /tmp/promptviser \
+            --sarif \
+            --sarif-output promptviser.sarif.json
+
+      - name: Upload SARIF
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: promptviser.sarif.json

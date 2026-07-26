@@ -16,6 +16,8 @@ type Info struct {
 	flt     float32
 }
 
+var currentVersion Info
+
 // PopulateFromBuild will parse the major/minor values from the build string
 // the build string is expected to be in the format
 // major.minor-commit
@@ -73,4 +75,9 @@ func (v Info) GreaterOrEqual(than Info) bool {
 // this is only valid if PopulateFromBuild has been called.
 func (v Info) Float() float32 {
 	return v.flt
+}
+
+// Current returns the current version set by the build.
+func Current() Info {
+	return currentVersion
 }

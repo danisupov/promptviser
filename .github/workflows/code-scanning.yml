@@ -35,7 +35,7 @@ jobs:
 
       - name: Start promptviser server
         run: |
-          nohup ./bin/promptviser --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.unittest.yaml" --only-server wfe > /tmp/promptviser/promptviser.log 2>&1 &
+          nohup ./bin/promptviser --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.yaml" --only-server wfe > /tmp/promptviser/promptviser.log 2>&1 &
           echo $! > /tmp/promptviser/promptviser.pid
 
       - name: Wait for server readiness

@@ -41,13 +41,13 @@ jobs:
 
       - name: Start promptviser server
         run: |
-          nohup ./bin/promptviser --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.yaml" --only-server wfe --listen-url http://0.0.0.0:7880 > /tmp/promptviser/promptviser.log 2>&1 &
+          nohup ./bin/promptviser --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.yaml" --only-server wfe > /tmp/promptviser/promptviser.log 2>&1 &
           echo $! > /tmp/promptviser/promptviser.pid
 
       - name: Wait for server readiness
         run: |
           for i in $(seq 1 60); do
-            if curl -fs http://localhost:7880/healthz >/dev/null; then
+            if curl -kfs https://localhost:7880/healthz >/dev/null; then
               exit 0
             fi
 
@@ -69,8 +69,9 @@ jobs:
         run: |
           ./bin/promptviserctl scan . \
             --http \
-            --server http://localhost:7880 \
+            --server https://localhost:7880 \
             --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.unittest.yaml" \
+            --trusted-ca /tmp/promptviser/certs/trusty_root_ca.pem \
             --storage /tmp/promptviser \
             --sarif \
             --sarif-output promptviser.sarif.json

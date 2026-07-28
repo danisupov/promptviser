@@ -69,10 +69,18 @@ jobs:
         env:
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         run: |
+          SCAN_CFG="$GITHUB_WORKSPACE/etc/dev/promptviser-config.unittest.yaml"
+          if [ -n "$AZURE_OPENAI_API_KEY" ]; then
+            SCAN_CFG="$GITHUB_WORKSPACE/etc/dev/promptviser-config.yaml"
+            echo "Using Azure LLM scan config"
+          else
+            echo "AZURE_OPENAI_API_KEY is not available; using stub scan config"
+          fi
+
           ./bin/promptviserctl scan . \
             --http \
             --server https://localhost:7880 \
-            --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.yaml" \
+            --cfg "$SCAN_CFG" \
             --trusted-ca /tmp/promptviser/certs/trusty_root_ca.pem \
             --storage /tmp/promptviser \
             --sarif \

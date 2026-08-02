@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -83,8 +85,34 @@ jobs:
             --sarif \
             --sarif-output promptviser.sarif.json
 
+      - name: Filter SARIF to changed files
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            git diff --name-only "origin/$BASE_REF...HEAD" > changed-files.txt
+          else
+            git diff --name-only "$BEFORE_SHA...HEAD" > changed-files.txt
+          fi
+
+          changed_files=$(jq -Rsc 'split("\n") | map(select(length > 0))' changed-files.txt)
+          jq --argjson changed "$changed_files" '
+            .runs[].results |= map(
+              select(any(.locations[]?; .physicalLocation.artifactLocation.uri as $uri | $changed | index($uri)))
+            )
+          ' promptviser.sarif.json > promptviser.changed.sarif.json
+
+      - name: Upload complete SARIF artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptviser-sarif-${{ github.run_id }}
+          path: promptviser.sarif.json
+          if-no-files-found: warn
+
       - name: Upload SARIF
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: promptviser.sarif.json
+          sarif_file: promptviser.changed.sarif.json

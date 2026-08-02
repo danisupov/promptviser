@@ -66,11 +66,18 @@ jobs:
           exit 1
 
       - name: Run scan and write SARIF
+        env:
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         run: |
+          if [ -z "$AZURE_OPENAI_API_KEY" ]; then
+            echo "AZURE_OPENAI_API_KEY is required for this workflow"
+            exit 1
+          fi
+
           ./bin/promptviserctl scan . \
             --http \
             --server https://localhost:7880 \
-            --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.unittest.yaml" \
+            --cfg "$GITHUB_WORKSPACE/etc/dev/promptviser-config.yaml" \
             --trusted-ca /tmp/promptviser/certs/trusty_root_ca.pem \
             --storage /tmp/promptviser \
             --sarif \

@@ -1,0 +1,23 @@
+---
+metrics:
+  disabled: true
+  prometheus:
+    addr:
+
+servers:
+  wfe:
+    disabled: false
+
+tasks: []
+
+client:
+  client_tls:
+    cert: /tmp/promptviser/certs/promptviser_client.pem
+    key: /tmp/promptviser/certs/promptviser_client.key
+    trusted_ca: /tmp/promptviser/certs/trusty_root_ca.pem
+  dial_timeout: 60s
+
+llm:
+  provider: openai
+  model: gpt-4o
+  api_key: ${OPENAI_API_KEY}
